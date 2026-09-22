@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>취미 목록</title>
+</head>
+<body>
+    <h1>취미</h1>
+    <ul>
+    {% for hobby in hobbies %}
+        <li>{{ hobby }}</li>
+    {% endfor %}
+    </ul>
+    <nav>
+        <a href="/">메인으로</a>
+    </nav>
+</body>
+</html>
