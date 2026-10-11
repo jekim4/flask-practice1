@@ -31,10 +31,14 @@ flask --debug run
 
 ## 실행 화면
 
-<!-- 아래 세 줄에 스크린샷을 끌어다 놓으세요 (GitHub README 편집 화면에서 이미지를 드래그하면 자동으로 링크가 생깁니다) -->
-
 ① 할 일 두 개가 있는 목록
+
+![두 개 목록](screenshots/1-list.png)
 
 ② 하나를 [완료] 눌러 줄이 그어진 화면
 
+![완료 체크](screenshots/2-done.png)
+
 ③ 새로고침한 뒤에도 줄이 남아 있는 화면
+
+![새로고침 후 유지](screenshots/3-refresh.png)
