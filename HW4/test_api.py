@@ -1,0 +1,75 @@
+import os
+import unittest
+
+# app 을 가져오기 "전에" 메모리 DB 주소를 넘깁니다.
+# 가져온 뒤에 config 를 바꾸면 이미 instance/todo.db 에 붙은 뒤라서,
+# 아래 drop_all() 이 내 할 일 목록을 지워 버립니다.
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+
+import app as todo_app  # noqa: E402  (위에서 주소를 먼저 정해야 해서 여기서 가져온다)
+
+
+class TodoApiTest(unittest.TestCase):
+
+    def setUp(self):                    # 테스트 하나마다 먼저 돈다
+        todo_app.app.config["TESTING"] = True
+        self.client = todo_app.app.test_client()
+        self.ctx = todo_app.app.app_context()
+        self.ctx.push()
+        todo_app.db.drop_all()
+        todo_app.db.create_all()
+
+    def tearDown(self):                 # 끝날 때마다 돈다
+        todo_app.db.session.remove()
+        self.ctx.pop()
+
+    # ---------------------------------------------------- 74쪽 다섯 개
+    def test_만든_것이_목록에_그대로_나온다(self):
+        self.client.post("/api/todos/", json={"text": "우유 사기", "done": True})
+        self.client.post("/api/todos/", json={"text": "책 반납"})
+        r = self.client.get("/api/todos/")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.get_json()), 2)          # 둘 다 나와야 한다
+
+    def test_만들면_201_과_만들어진_것이_온다(self):
+        r = self.client.post("/api/todos/", json={"text": "우유 사기"})
+        self.assertEqual(r.status_code, 201)
+        self.assertEqual(r.get_json()["text"], "우유 사기")
+
+    def test_없는_번호는_404_다(self):
+        r = self.client.get("/api/todos/999")
+        self.assertEqual(r.status_code, 404)
+        self.assertEqual(r.get_json()["message"], "999 번 할 일이 없습니다")
+
+    def test_patch_는_보낸_칸만_바꾼다(self):
+        made = self.client.post("/api/todos/", json={"text": "책 반납"}).get_json()
+        r = self.client.patch(f"/api/todos/{made['id']}", json={"done": True})
+        self.assertEqual(r.get_json()["text"], "책 반납")   # 글자는 그대로
+        self.assertTrue(r.get_json()["done"])              # 완료만 바뀜
+
+    def test_지우면_204_고_다시_찾으면_404_다(self):
+        made = self.client.post("/api/todos/", json={"text": "지울 것"}).get_json()
+        self.assertEqual(self.client.delete(f"/api/todos/{made['id']}").status_code, 204)
+        self.assertEqual(self.client.get(f"/api/todos/{made['id']}").status_code, 404)
+
+    # ---------------------------------------------------- HW4 에서 더한 것
+    def test_note_를_넣어_만들면_그대로_돌아온다(self):
+        r = self.client.post("/api/todos/", json={"text": "우유 사기", "note": "2리터짜리로"})
+        self.assertEqual(r.status_code, 201)
+        self.assertEqual(r.get_json()["note"], "2리터짜리로")
+
+    def test_note_를_안_보내면_빈_글자다(self):
+        r = self.client.post("/api/todos/", json={"text": "책 반납"})
+        self.assertEqual(r.get_json()["note"], "")
+
+    def test_done_으로_걸러_받는다(self):
+        self.client.post("/api/todos/", json={"text": "우유 사기", "done": True})
+        self.client.post("/api/todos/", json={"text": "책 반납"})
+        done = self.client.get("/api/todos/?done=true").get_json()
+        not_done = self.client.get("/api/todos/?done=false").get_json()
+        self.assertEqual([t["text"] for t in done], ["우유 사기"])
+        self.assertEqual([t["text"] for t in not_done], ["책 반납"])
+
+
+if __name__ == "__main__":
+    unittest.main()
