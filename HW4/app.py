@@ -20,6 +20,7 @@ class Todo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     text = db.Column(db.String(100), nullable=False)
     done = db.Column(db.Boolean, default=False)
+    note = db.Column(db.String(500), default="")
 
     def __repr__(self):
         return f'<Todo {self.id} {self.text}>'
@@ -64,11 +65,13 @@ todo_model = api.model("Todo", {
     "id": fields.Integer(readonly=True, description="줄 번호. 서버가 붙입니다"),
     "text": fields.String(required=True, description="할 일 글자", example="우유 사기"),
     "done": fields.Boolean(description="완료 여부", example=False),
+    "note": fields.String(description="설명", example="2리터짜리로"),
 })
 
 todo_input = api.model("TodoInput", {
     "text": fields.String(required=True, description="할 일 글자", example="우유 사기"),
-    "done": fields.Boolean(description="완료 여부", example=False),\
+    "done": fields.Boolean(description="완료 여부", example=False),
+    "note": fields.String(description="설명", example="2리터짜리로"),
 })
 
 @ns.route("/")
@@ -85,7 +88,8 @@ class TodoList(Resource):
     def post(self):
         """할 일을 하나 만든다"""
         todo = Todo(text=api.payload["text"],
-                    done=api.payload.get("done", False))
+                    done=api.payload.get("done", False),
+                    note=api.payload.get("note", ""))
         db.session.add(todo)
         db.session.commit()
         # 만들었으면 201 과 함께 그것이 어디 있는지 Location 에 적어 줍니다.
@@ -121,6 +125,8 @@ class TodoItem(Resource):
             todo.text = api.payload["text"]
         if "done" in api.payload:
             todo.done = api.payload["done"]
+        if "note" in api.payload:
+            todo.note = api.payload["note"]
         db.session.commit()
         return todo
 
